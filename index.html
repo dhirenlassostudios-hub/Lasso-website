@@ -168,8 +168,13 @@ form{display:grid;gap:12px;margin-top:16px}.cons{display:flex;gap:10px;font-size
 <iframe name="lead-submit-frame" id="lead-submit-frame" style="display:none" aria-hidden="true"></iframe>
 
 <!-- Google Sheets receiver (Apps Script, deploy as Web app, access: Anyone). Sheet tab named "Leads":
-function doPost(e){var d=JSON.parse(e.postData.contents);SpreadsheetApp.getActive().getSheetByName('Leads').appendRow(['timestamp','first_name','email','business','interest','landing_page','utm_source','utm_medium','utm_campaign','session_id','consent'].map(function(k){return d[k]||''}));return ContentService.createTextOutput('ok')}
-Then set CFG.sheets below to the Web app URL. Set CFG.analytics to any endpoint that accepts JSON events. -->
+Replace your doGet/doPost with this code to handle form POST from iframe:
+
+function doPost(e){var d=e.parameter;SpreadsheetApp.getActive().getSheetByName('Leads').appendRow([new Date(),d.name,d.email,d.business,d.interest,d.page,d.source,d.session,d.website]);return ContentService.createTextOutput('ok')}
+function doGet(e){return doPost(e)}
+
+Then set CFG.sheets below to the Web app URL.
+-->
 <script>
 const CFG={sheets:'https://script.google.com/macros/s/AKfycbw10aXPgxQdPK7iT74uk8rZYFLUAUc4myI8FxzF266bLQ3bPejGjnP2HjZBod9l7exm/exec',analytics:''};
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
@@ -184,7 +189,7 @@ function openM(src,interest){mode=src;$('#mt').textContent=src==='popup'?'Ready 
 $('#mx').onclick=()=>m.close();
 f.addEventListener('focusin',()=>{if(!started){started=1;track('lead_form_start',{mode})}});
 f.onsubmit=e=>{e.preventDefault();if(f.website.value)return;const d=new FormData(f);fbtn.disabled=true;fbtn.textContent='Sending...';
-const row={timestamp:new Date().toISOString(),name:d.get('name'),email:d.get('email'),business:d.get('business'),interest:d.get('interest'),page:location.href.split('?')[0],source:U('utm_source'),session:sid};
+const row={timestamp:new Date().toISOString(),name:d.get('name'),email:d.get('email'),business:d.get('business'),interest:d.get('interest'),page:location.href.split('?')[0],source:U('utm_source'),session:sid,website:d.get('website')||''};
 track('lead_form_submit',{interest:row.interest,mode});if(mode!=='popup')track('booking_completed',{interest:row.interest});
 if(CFG.sheets){Object.keys(row).forEach(k=>{if(!f.elements[k]){const inp=document.createElement('input');inp.type='hidden';inp.name=k;inp.value=row[k];f.appendChild(inp)}else{f.elements[k].value=row[k]}});f.action=CFG.sheets;f.submit()}
 setTimeout(()=>{st.s('pop',Date.now()+'');st.s('lead','1');f.hidden=true;$('#ok').hidden=false;f.reset();fbtn.disabled=false;fbtn.textContent='Let\'s Talk'},1200)};
